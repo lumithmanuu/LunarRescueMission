@@ -1,0 +1,5 @@
+lunar_rescue
+*.o
+*.out
+*.exe
+.DS_Store
