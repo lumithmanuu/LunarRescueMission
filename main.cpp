@@ -98,6 +98,8 @@ std::vector<Vec2> terrain;
 int collectedCrystals = 0;
 int score = 0;
 float screenShake = 0.0f;
+float repairTimer = 0.0f;
+bool isLandedOnPad = false;
 std::string endMessage = "";
 
 const float LANDER_RADIUS = 18.0f;
@@ -246,6 +248,8 @@ void resetGame() {
 
     score = 0;
     screenShake = 0.0f;
+    repairTimer = 0.0f;
+    isLandedOnPad = false;
     endMessage = "";
     particles.clear();
     floatingTexts.clear();
@@ -622,10 +626,10 @@ void finishGame(bool won, const std::string& message) {
 void updateLander() {
     // Rotation
     if (keys['a'] || keys['A'] || specialKeys[GLUT_KEY_LEFT]) {
-        lander.angle += 3.0f;
+        lander.angle -= 3.0f;
     }
     if (keys['d'] || keys['D'] || specialKeys[GLUT_KEY_RIGHT]) {
-        lander.angle -= 3.0f;
+        lander.angle += 3.0f;
     }
 
     if (lander.angle > 180.0f) lander.angle -= 360.0f;
@@ -661,19 +665,43 @@ void updateLander() {
 
     // Terrain / landing check
     float terrainY = getTerrainY(lander.x);
-    if (lander.y - LANDER_RADIUS <= terrainY) {
+    isLandedOnPad = false;
+    
+    if (lander.y - 24.0f <= terrainY) {
         bool onPad = (lander.x >= PAD_X1 && lander.x <= PAD_X2);
         bool upright = std::fabs(lander.angle) <= 12.0f;
         bool slow = std::fabs(lander.vx) <= 1.3f && std::fabs(lander.vy) <= 1.7f;
 
         if (onPad && upright && slow) {
-            lander.y = terrainY + LANDER_RADIUS;
+            lander.y = terrainY + 24.0f;
             lander.vx = 0.0f;
             lander.vy = 0.0f;
-            finishGame(true, "Safe landing completed!");
+            isLandedOnPad = true;
+            
+            // Refuel (takes 5s to go 0->100, approx 0.33 per frame)
+            if (lander.fuel < 100.0f) {
+                lander.fuel += 100.0f / (5.0f * 60.0f);
+                if (lander.fuel > 100.0f) lander.fuel = 100.0f;
+            }
+            
+            // Repair
+            repairTimer += 16.0f;
+            if (repairTimer >= 5000.0f) {
+                if (lander.hull < 3) {
+                    lander.hull++;
+                    addFloatingText(lander.x - 20.0f, lander.y + 40.0f, "REPAIRED!");
+                    addExplosion(lander.x, lander.y, 0.2f, 1.0f, 0.4f, 15);
+                }
+                repairTimer = 0.0f;
+            }
         } else {
             finishGame(false, "Crash landing. Too fast, tilted, or outside the pad.");
+            return;
         }
+    }
+    
+    if (!isLandedOnPad) {
+        repairTimer = 0.0f;
     }
 }
 
@@ -687,7 +715,7 @@ void updateMeteors() {
             respawnMeteor(m);
         }
 
-        if (distance2D(lander.x, lander.y, m.x, m.y) < LANDER_RADIUS + m.radius) {
+        if (!isLandedOnPad && distance2D(lander.x, lander.y, m.x, m.y) < LANDER_RADIUS + m.radius) {
             lander.hull--;
             screenShake = 7.0f;
             addExplosion(m.x, m.y, 1.0f, 0.45f, 0.1f, 25);
