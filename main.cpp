@@ -709,6 +709,15 @@ void updateCrystals() {
             collectedCrystals++;
             addExplosion(c.x, c.y, 0.2f, 1.0f, 0.9f, 18);
             addFloatingText(c.x - 25.0f, c.y + 20.0f, "+100");
+            
+            if (collectedCrystals == (int)crystals.size()) {
+                finishGame(true, "All crystals collected! VICTORY!");
+                // Victory Celebration
+                addExplosion(lander.x, lander.y, 0.2f, 1.0f, 0.9f, 60);
+                addExplosion(lander.x - 30.0f, lander.y + 20.0f, 1.0f, 0.9f, 0.2f, 40);
+                addExplosion(lander.x + 30.0f, lander.y + 20.0f, 1.0f, 0.2f, 0.9f, 40);
+                addFloatingText(lander.x - 40.0f, lander.y + 40.0f, "VICTORY!");
+            }
         }
     }
 }
