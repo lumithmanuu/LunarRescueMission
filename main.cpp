@@ -1,7 +1,9 @@
-/*
- * Lunar Rescue Mission
- * 2D Computer Graphics OpenGL/freeGLUT game
+/** 2D Computer Graphics OpenGL/freeGLUT game
  * Built for macOS + C++ + GLUT
+ *
+ * Goal: Collect all energy crystals, avoid meteors, and land safely.
+ * Landing pad repairs hull damage and refuels the ship.
+ * Safe landing requires low speed, upright angle, and landing on the pad.
  *
  * Controls:
  *   ENTER  - Start game / play again
@@ -160,6 +162,10 @@ void addFloatingText(float x, float y, const std::string& text) {
     floatingTexts.push_back({x, y, 1.0f, 1.0f, text});
 }
 
+// ==========================================
+// CONCEPT 4: Rotation Vectors
+// Using trigonometric calculations (cos/sin) to disperse radial explosion debris.
+// ==========================================
 void addExplosion(float x, float y, float r, float g, float b, int count) {
     for (int i = 0; i < count; ++i) {
         float a = randFloat(0.0f, 2.0f * PI);
@@ -425,6 +431,10 @@ void drawFloatingTexts() {
     }
 }
 
+// ==========================================
+// CONCEPT 2: Polygon Filling & Primitive Construction
+// Utilizing drawRect/drawTriangle for dynamic bars (Fuel/Hull) and object construction.
+// ==========================================
 void drawHUD() {
     std::stringstream ss;
     glColor3f(1.0f, 1.0f, 1.0f);
@@ -464,13 +474,14 @@ void drawMenu() {
     drawText(230, 435, "LUNAR RESCUE MISSION", GLUT_BITMAP_TIMES_ROMAN_24);
 
     glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(190, 380, "Collect energy crystals and land safely on the moon pad.", GLUT_BITMAP_HELVETICA_18);
-    drawText(230, 335, "Controls", GLUT_BITMAP_HELVETICA_18);
-    drawText(230, 310, "A/D or Left/Right arrows : Rotate ship");
-    drawText(230, 290, "W or Up arrow             : Thrust");
-    drawText(230, 270, "P                         : Pause");
-    drawText(230, 250, "R                         : Restart");
-    drawText(230, 230, "ESC                       : Exit");
+    drawText(160, 380, "Collect all crystals, avoid meteors, and land safely.", GLUT_BITMAP_HELVETICA_18);
+    drawText(160, 360, "The landing pad refuels your ship and repairs hull damage.", GLUT_BITMAP_HELVETICA_18);
+    drawText(230, 325, "Controls", GLUT_BITMAP_HELVETICA_18);
+    drawText(230, 300, "A/D or Left/Right arrows : Rotate ship");
+    drawText(230, 280, "W or Up arrow             : Thrust");
+    drawText(230, 260, "P                         : Pause");
+    drawText(230, 240, "R                         : Restart");
+    drawText(230, 220, "ESC                       : Exit");
 
     glColor3f(0.9f, 1.0f, 0.3f);
     drawText(285, 170, "Press ENTER to Start", GLUT_BITMAP_HELVETICA_18);
@@ -518,6 +529,10 @@ void drawEndScreen(bool won) {
     drawText(330, 185, "Press ESC to exit");
 }
 
+// ==========================================
+// CONCEPT 3: Transformations
+// Including object translation, screen shake composite matrices, and dynamic scaling.
+// ==========================================
 void drawScene() {
     glClear(GL_COLOR_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);
@@ -771,6 +786,10 @@ void updateGame() {
     updateCrystals();
 }
 
+// ==========================================
+// CONCEPT 5: Animation Principles (Timing & Staging)
+// Framerate management, background staging (parallax stars), and reaction feedback loops.
+// ==========================================
 void timer(int) {
     updateGame();
     glutPostRedisplay();
@@ -814,6 +833,10 @@ void specialUp(int key, int, int) {
     if (key >= 0 && key < 256) specialKeys[key] = false;
 }
 
+// ==========================================
+// CONCEPT 1: Viewing & Clipping
+// Using gluOrtho2D viewport configurations and boundary clamps.
+// ==========================================
 void reshape(int w, int h) {
     glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);

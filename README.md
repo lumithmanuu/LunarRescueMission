@@ -4,7 +4,7 @@ A 2D OpenGL / GLUT Computer Graphics game designed for a 5-member group project.
 
 ## Game idea
 
-You control a lunar lander. Collect energy crystals, avoid meteors, and safely land on the green landing pad. A successful landing requires:
+You control a lunar lander. Collect energy crystals, avoid meteors, and safely land on the green landing pad. The landing pad repairs hull damage and refuels the ship. A successful landing requires:
 
 - landing on the pad,
 - low horizontal and vertical speed,
@@ -56,10 +56,4 @@ clang++ main.cpp -o lunar_rescue -std=c++11 -framework OpenGL -framework GLUT
 ./lunar_rescue
 ```
 
-## Suggested 5-member contribution split
 
-1. Member 1: Lander drawing and rotation
-2. Member 2: Physics, gravity, thrust, velocity, fuel
-3. Member 3: Terrain and landing pad + safe landing logic
-4. Member 4: Meteors, crystals, particles, collisions
-5. Member 5: UI, game states, score, README/presentation explanation
