@@ -143,8 +143,21 @@ int getTextWidth(const std::string& text, void* font) {
     return width;
 }
 
+float getTextDrawWidth(const std::string& text, void* font) {
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    if (viewport[2] <= 0) {
+        return static_cast<float>(getTextWidth(text, font));
+    }
+
+    // GLUT reports bitmap widths in screen pixels, while this game draws in
+    // the fixed 800-unit coordinate system established by gluOrtho2D.
+    return static_cast<float>(getTextWidth(text, font)) * WIN_W / viewport[2];
+}
+
 void drawCenteredText(float centerX, float y, const std::string& text, void* font = GLUT_BITMAP_8_BY_13) {
-    drawText(centerX - static_cast<float>(getTextWidth(text, font)) * 0.5f, y, text, font);
+    drawText(centerX - getTextDrawWidth(text, font) * 0.5f, y, text, font);
 }
 
 void drawCenteredWrappedText(float centerX, float startY, float maxWidth, float lineHeight,
@@ -156,7 +169,7 @@ void drawCenteredWrappedText(float centerX, float startY, float maxWidth, float 
 
     while (words >> word) {
         std::string candidate = line.empty() ? word : line + " " + word;
-        if (!line.empty() && getTextWidth(candidate, font) > maxWidth) {
+        if (!line.empty() && getTextDrawWidth(candidate, font) > maxWidth) {
             drawCenteredText(centerX, y, line, font);
             line = word;
             y -= lineHeight;
@@ -635,7 +648,7 @@ void drawEndScreen(bool won) {
     drawText(labelX, 292.0f, "FINAL SCORE", GLUT_BITMAP_HELVETICA_18);
     ss << score;
     glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+    drawText(valueRightX - getTextDrawWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
              292.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
     ss.str(""); ss.clear();
@@ -643,7 +656,7 @@ void drawEndScreen(bool won) {
     drawText(labelX, 264.0f, "CRYSTALS", GLUT_BITMAP_HELVETICA_18);
     ss << collectedCrystals << "/" << crystals.size();
     glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+    drawText(valueRightX - getTextDrawWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
              264.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
     ss.str(""); ss.clear();
@@ -651,7 +664,7 @@ void drawEndScreen(bool won) {
     drawText(labelX, 236.0f, "FUEL REMAINING", GLUT_BITMAP_HELVETICA_18);
     ss << (int)lander.fuel << "%";
     glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+    drawText(valueRightX - getTextDrawWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
              236.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
     glColor3f(0.18f, 0.50f, 0.65f);
