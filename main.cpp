@@ -613,9 +613,9 @@ void drawInstructionsScreen() {
     drawText(152.0f, 252.0f, "R                : Restart mission");
 
     drawText(152.0f, 210.0f, "Safe Landing Rules", GLUT_BITMAP_HELVETICA_18);
-    drawText(152.0f, 185.0f, "1. Collect every crystal before the final landing.");
-    drawText(152.0f, 163.0f, "2. Touch the green pad with low horizontal and vertical speed.");
-    drawText(152.0f, 141.0f, "3. Keep the lander nearly upright.");
+    drawText(152.0f, 185.0f, "1. Land safely on the green pad anytime to refuel and continue.");
+    drawText(152.0f, 163.0f, "2. Collect every crystal before making the final landing.");
+    drawText(152.0f, 141.0f, "3. Land slowly, nearly upright, and fully inside the pad.");
 
     glColor3f(1.0f, 0.95f, 0.55f);
     drawCenteredText(400.0f, 105.0f, "Press ENTER or ESC to return to the main menu.", GLUT_BITMAP_HELVETICA_18);
