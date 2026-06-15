@@ -74,6 +74,7 @@ struct Lander {
 
 enum GameState {
     MENU,
+    INSTRUCTIONS,
     PLAYING,
     PAUSED,
     GAME_OVER,
@@ -95,10 +96,18 @@ std::vector<Vec2> terrain;
 
 int collectedCrystals = 0;
 int score = 0;
+int menuSelection = 0;
 float screenShake = 0.0f;
 float repairTimer = 0.0f;
 bool isLandedOnPad = false;
 std::string endMessage = "";
+
+const char* MENU_ITEMS[] = {
+    "Start Game",
+    "Instructions",
+    "Exit"
+};
+const int MENU_ITEM_COUNT = 3;
 
 const float LANDER_RADIUS = 18.0f;
 const float PAD_X1 = 340.0f;
@@ -123,6 +132,41 @@ void drawText(float x, float y, const std::string& text, void* font = GLUT_BITMA
     glRasterPos2f(x, y);
     for (char c : text) {
         glutBitmapCharacter(font, c);
+    }
+}
+
+int getTextWidth(const std::string& text, void* font) {
+    int width = 0;
+    for (char c : text) {
+        width += glutBitmapWidth(font, c);
+    }
+    return width;
+}
+
+void drawCenteredText(float centerX, float y, const std::string& text, void* font = GLUT_BITMAP_8_BY_13) {
+    drawText(centerX - static_cast<float>(getTextWidth(text, font)) * 0.5f, y, text, font);
+}
+
+void drawCenteredWrappedText(float centerX, float startY, float maxWidth, float lineHeight,
+                             const std::string& text, void* font) {
+    std::stringstream words(text);
+    std::string word;
+    std::string line;
+    float y = startY;
+
+    while (words >> word) {
+        std::string candidate = line.empty() ? word : line + " " + word;
+        if (!line.empty() && getTextWidth(candidate, font) > maxWidth) {
+            drawCenteredText(centerX, y, line, font);
+            line = word;
+            y -= lineHeight;
+        } else {
+            line = candidate;
+        }
+    }
+
+    if (!line.empty()) {
+        drawCenteredText(centerX, y, line, font);
     }
 }
 
@@ -266,6 +310,48 @@ void drawStars() {
         glColor3f(brightness, brightness, brightness);
         glVertex2f(s.x, s.y);
     }
+    glEnd();
+}
+
+void drawMenuBackground() {
+    glBegin(GL_QUADS);
+    glColor3f(0.01f, 0.02f, 0.08f);
+    glVertex2f(0.0f, WIN_H);
+    glVertex2f(static_cast<float>(WIN_W), WIN_H);
+    glColor3f(0.03f, 0.08f, 0.16f);
+    glVertex2f(static_cast<float>(WIN_W), 180.0f);
+    glVertex2f(0.0f, 180.0f);
+    glEnd();
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.04f, 0.20f, 0.34f, 0.28f);
+    drawFilledCircle(170.0f, 450.0f, 120.0f, 48);
+    glColor4f(0.82f, 0.86f, 0.96f, 0.16f);
+    drawFilledCircle(650.0f, 470.0f, 84.0f, 48);
+    glColor4f(0.72f, 0.78f, 0.88f, 0.92f);
+    drawFilledCircle(650.0f, 470.0f, 65.0f, 48);
+    glColor4f(0.58f, 0.64f, 0.74f, 0.55f);
+    drawFilledCircle(630.0f, 488.0f, 10.0f, 18);
+    drawFilledCircle(674.0f, 448.0f, 13.0f, 18);
+    glDisable(GL_BLEND);
+
+    drawStars();
+}
+
+void drawPanel(float x, float y, float w, float h) {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glColor4f(0.02f, 0.04f, 0.10f, 0.86f);
+    drawRect(x, y, w, h);
+    glDisable(GL_BLEND);
+
+    glColor3f(0.20f, 0.82f, 1.0f);
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(x, y);
+    glVertex2f(x + w, y);
+    glVertex2f(x + w, y + h);
+    glVertex2f(x, y + h);
     glEnd();
 }
 
@@ -459,39 +545,67 @@ void drawHUD() {
     drawRect(WIN_W - 170, WIN_H - 33, 140.0f * (lander.fuel / 100.0f), 14);
 
     glColor3f(0.7f, 0.9f, 1.0f);
-    drawText(WIN_W - 285, 18, "Safe landing: slow speed + upright + on pad");
+    if (collectedCrystals == static_cast<int>(crystals.size())) {
+        drawText(WIN_W - 315, 18, "All crystals secured: return to the landing pad.");
+    } else {
+        drawText(WIN_W - 315, 18, "Mission: collect all crystals, then land safely.");
+    }
 }
 
 void drawMenu() {
-    drawStars();
-    glColor3f(0.2f, 0.9f, 1.0f);
-    drawText(230, 435, "LUNAR RESCUE MISSION", GLUT_BITMAP_TIMES_ROMAN_24);
+    drawMenuBackground();
+    drawPanel(160.0f, 95.0f, 480.0f, 405.0f);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(190, 380, "Collect energy crystals and land safely on the moon pad.", GLUT_BITMAP_HELVETICA_18);
-    drawText(230, 335, "Controls", GLUT_BITMAP_HELVETICA_18);
-    drawText(230, 310, "A/D or Left/Right arrows : Rotate ship");
-    drawText(230, 290, "W or Up arrow             : Thrust");
-    drawText(230, 270, "P                         : Pause");
-    drawText(230, 250, "R                         : Restart");
-    drawText(230, 230, "ESC                       : Exit");
+    glColor3f(0.20f, 0.92f, 1.0f);
+    drawCenteredText(400.0f, 450.0f, "LUNAR RESCUE MISSION", GLUT_BITMAP_TIMES_ROMAN_24);
 
-    glColor3f(0.9f, 1.0f, 0.3f);
-    drawText(285, 170, "Press ENTER to Start", GLUT_BITMAP_HELVETICA_18);
+    glColor3f(0.94f, 0.97f, 1.0f);
+    drawCenteredText(400.0f, 415.0f, "Collect every crystal, then return to the landing pad.", GLUT_BITMAP_HELVETICA_18);
+    drawCenteredText(400.0f, 393.0f, "Land slowly and upright to complete the rescue mission.", GLUT_BITMAP_HELVETICA_18);
 
-    // Decorative rotating lander
-    glPushMatrix();
-    glTranslatef(400, 110, 0);
-    glRotatef((float)glutGet(GLUT_ELAPSED_TIME) * 0.04f, 0, 0, 1);
-    glColor3f(0.25f, 0.75f, 1.0f);
-    glBegin(GL_TRIANGLES);
-    glVertex2f(0, 25);
-    glVertex2f(-18, -15);
-    glVertex2f(18, -15);
-    glEnd();
-    glColor3f(0.35f, 0.9f, 1.0f);
-    drawOutlinedCircle(0, 0, 28, 40);
-    glPopMatrix();
+    for (int i = 0; i < MENU_ITEM_COUNT; ++i) {
+        float itemY = 325.0f - static_cast<float>(i) * 62.0f;
+        if (i == menuSelection) {
+            glColor3f(0.16f, 0.40f, 0.55f);
+            drawRect(220.0f, itemY - 18.0f, 360.0f, 28.0f);
+            glColor3f(1.0f, 1.0f, 0.72f);
+            drawText(244.0f, itemY, std::string("> ") + MENU_ITEMS[i], GLUT_BITMAP_HELVETICA_18);
+        } else {
+            glColor3f(0.88f, 0.92f, 1.0f);
+            drawText(244.0f, itemY, MENU_ITEMS[i], GLUT_BITMAP_HELVETICA_18);
+        }
+    }
+
+    glColor3f(0.72f, 0.88f, 1.0f);
+    drawCenteredText(400.0f, 132.0f, "Use Up / Down arrows or W / S to move in the menu.", GLUT_BITMAP_HELVETICA_18);
+    drawCenteredText(400.0f, 108.0f, "Press Enter to select. Press ESC from here to exit.", GLUT_BITMAP_HELVETICA_18);
+}
+
+void drawInstructionsScreen() {
+    drawMenuBackground();
+    drawPanel(120.0f, 85.0f, 560.0f, 430.0f);
+
+    glColor3f(0.20f, 0.92f, 1.0f);
+    drawCenteredText(400.0f, 470.0f, "INSTRUCTIONS", GLUT_BITMAP_TIMES_ROMAN_24);
+
+    glColor3f(0.94f, 0.97f, 1.0f);
+    drawText(152.0f, 430.0f, "Mission Goal", GLUT_BITMAP_HELVETICA_18);
+    drawText(152.0f, 405.0f, "Collect all five crystals, avoid meteors, then return to the landing pad.");
+
+    drawText(152.0f, 365.0f, "Controls", GLUT_BITMAP_HELVETICA_18);
+    drawText(152.0f, 340.0f, "W / Up Arrow     : Fire main thruster");
+    drawText(152.0f, 318.0f, "A / Left Arrow   : Rotate lander left");
+    drawText(152.0f, 296.0f, "D / Right Arrow  : Rotate lander right");
+    drawText(152.0f, 274.0f, "P                : Pause / resume");
+    drawText(152.0f, 252.0f, "R                : Restart mission");
+
+    drawText(152.0f, 210.0f, "Safe Landing Rules", GLUT_BITMAP_HELVETICA_18);
+    drawText(152.0f, 185.0f, "1. Collect every crystal before the final landing.");
+    drawText(152.0f, 163.0f, "2. Touch the green pad with low horizontal and vertical speed.");
+    drawText(152.0f, 141.0f, "3. Keep the lander nearly upright.");
+
+    glColor3f(1.0f, 0.95f, 0.55f);
+    drawCenteredText(400.0f, 105.0f, "Press ENTER or ESC to return to the main menu.", GLUT_BITMAP_HELVETICA_18);
 }
 
 void drawEndScreen(bool won) {
@@ -499,27 +613,54 @@ void drawEndScreen(bool won) {
     drawTerrain();
     drawParticles();
 
+    const float panelX = 205.0f;
+    const float panelY = 165.0f;
+    const float panelW = 390.0f;
+    const float centerX = 400.0f;
+    drawPanel(panelX, panelY, panelW, 280.0f);
+
     glColor3f(won ? 0.2f : 1.0f, won ? 1.0f : 0.2f, won ? 0.4f : 0.1f);
-    drawText(won ? 280 : 300, 395, won ? "MISSION SUCCESS" : "MISSION FAILED", GLUT_BITMAP_TIMES_ROMAN_24);
+    drawCenteredText(centerX, 390.0f, won ? "MISSION SUCCESS" : "MISSION FAILED", GLUT_BITMAP_TIMES_ROMAN_24);
 
-    glColor3f(1.0f, 1.0f, 1.0f);
-    drawText(270, 350, endMessage, GLUT_BITMAP_HELVETICA_18);
+    glColor3f(0.88f, 0.92f, 1.0f);
+    drawCenteredWrappedText(centerX, 352.0f, 330.0f, 20.0f, endMessage, GLUT_BITMAP_HELVETICA_18);
 
+    glColor3f(0.18f, 0.50f, 0.65f);
+    drawRect(panelX + 32.0f, 316.0f, panelW - 64.0f, 1.0f);
+
+    const float labelX = 275.0f;
+    const float valueRightX = 525.0f;
     std::stringstream ss;
-    ss << "Final Score: " << score;
-    drawText(330, 315, ss.str(), GLUT_BITMAP_HELVETICA_18);
+    glColor3f(0.68f, 0.78f, 0.90f);
+    drawText(labelX, 292.0f, "FINAL SCORE", GLUT_BITMAP_HELVETICA_18);
+    ss << score;
+    glColor3f(1.0f, 1.0f, 1.0f);
+    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+             292.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
     ss.str(""); ss.clear();
-    ss << "Crystals Collected: " << collectedCrystals << "/" << crystals.size();
-    drawText(300, 290, ss.str());
+    glColor3f(0.68f, 0.78f, 0.90f);
+    drawText(labelX, 264.0f, "CRYSTALS", GLUT_BITMAP_HELVETICA_18);
+    ss << collectedCrystals << "/" << crystals.size();
+    glColor3f(1.0f, 1.0f, 1.0f);
+    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+             264.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
     ss.str(""); ss.clear();
-    ss << "Fuel Remaining: " << (int)lander.fuel << "%";
-    drawText(322, 270, ss.str());
+    glColor3f(0.68f, 0.78f, 0.90f);
+    drawText(labelX, 236.0f, "FUEL REMAINING", GLUT_BITMAP_HELVETICA_18);
+    ss << (int)lander.fuel << "%";
+    glColor3f(1.0f, 1.0f, 1.0f);
+    drawText(valueRightX - getTextWidth(ss.str(), GLUT_BITMAP_HELVETICA_18),
+             236.0f, ss.str(), GLUT_BITMAP_HELVETICA_18);
 
-    glColor3f(0.9f, 1.0f, 0.3f);
-    drawText(270, 210, "Press ENTER or R to play again", GLUT_BITMAP_HELVETICA_18);
-    drawText(330, 185, "Press ESC to exit");
+    glColor3f(0.18f, 0.50f, 0.65f);
+    drawRect(panelX + 32.0f, 216.0f, panelW - 64.0f, 1.0f);
+
+    glColor3f(1.0f, 0.95f, 0.42f);
+    drawCenteredText(centerX, 192.0f, "ENTER / R   PLAY AGAIN", GLUT_BITMAP_HELVETICA_18);
+    glColor3f(0.68f, 0.82f, 0.92f);
+    drawCenteredText(centerX, 172.0f, "ESC   MAIN MENU", GLUT_BITMAP_HELVETICA_18);
 }
 
 // ==========================================
@@ -536,6 +677,12 @@ void drawScene() {
 
     if (state == MENU) {
         drawMenu();
+        glutSwapBuffers();
+        return;
+    }
+
+    if (state == INSTRUCTIONS) {
+        drawInstructionsScreen();
         glutSwapBuffers();
         return;
     }
@@ -684,6 +831,15 @@ void updateLander() {
             lander.vx = 0.0f;
             lander.vy = 0.0f;
             isLandedOnPad = true;
+
+            if (collectedCrystals == static_cast<int>(crystals.size())) {
+                finishGame(true, "All crystals secured and the lander returned safely!");
+                addExplosion(lander.x, lander.y + 30.0f, 0.2f, 1.0f, 0.9f, 60);
+                addExplosion(lander.x - 45.0f, lander.y + 55.0f, 1.0f, 0.9f, 0.2f, 40);
+                addExplosion(lander.x + 45.0f, lander.y + 55.0f, 1.0f, 0.2f, 0.9f, 40);
+                addFloatingText(lander.x - 55.0f, lander.y + 45.0f, "MISSION COMPLETE!");
+                return;
+            }
             
             // Refuel (takes 5s to go 0->100, approx 0.33 per frame)
             if (lander.fuel < 100.0f) {
@@ -746,12 +902,7 @@ void updateCrystals() {
             addFloatingText(c.x - 25.0f, c.y + 20.0f, "+100");
             
             if (collectedCrystals == (int)crystals.size()) {
-                finishGame(true, "All crystals collected! VICTORY!");
-                // Victory Celebration
-                addExplosion(lander.x, lander.y, 0.2f, 1.0f, 0.9f, 60);
-                addExplosion(lander.x - 30.0f, lander.y + 20.0f, 1.0f, 0.9f, 0.2f, 40);
-                addExplosion(lander.x + 30.0f, lander.y + 20.0f, 1.0f, 0.2f, 0.9f, 40);
-                addFloatingText(lander.x - 40.0f, lander.y + 40.0f, "VICTORY!");
+                addFloatingText(lander.x - 55.0f, lander.y + 35.0f, "RETURN TO THE PAD!");
             }
         }
     }
@@ -787,15 +938,53 @@ void timer(int) {
     glutTimerFunc(16, timer, 0);
 }
 
+void moveMenuSelection(int direction) {
+    menuSelection += direction;
+    if (menuSelection < 0) menuSelection = MENU_ITEM_COUNT - 1;
+    if (menuSelection >= MENU_ITEM_COUNT) menuSelection = 0;
+}
+
+void activateMenuItem() {
+    if (menuSelection == 0) {
+        resetGame();
+        state = PLAYING;
+    } else if (menuSelection == 1) {
+        state = INSTRUCTIONS;
+    } else {
+        std::exit(0);
+    }
+}
+
 void keyDown(unsigned char key, int, int) {
     keys[(unsigned char)key] = true;
 
+    if (state == MENU) {
+        if (key == 'w' || key == 'W') {
+            moveMenuSelection(-1);
+        } else if (key == 's' || key == 'S') {
+            moveMenuSelection(1);
+        } else if (key == 13) {
+            activateMenuItem();
+        } else if (key == 27) {
+            std::exit(0);
+        }
+        return;
+    }
+
+    if (state == INSTRUCTIONS) {
+        if (key == 13 || key == 27) {
+            state = MENU;
+        }
+        return;
+    }
+
     if (key == 27) {
-        std::exit(0);
+        state = MENU;
+        return;
     }
 
     if (key == 13) { // ENTER
-        if (state == MENU || state == GAME_OVER || state == GAME_WON) {
+        if (state == GAME_OVER || state == GAME_WON) {
             resetGame();
             state = PLAYING;
         }
@@ -818,6 +1007,14 @@ void keyUp(unsigned char key, int, int) {
 
 void specialDown(int key, int, int) {
     if (key >= 0 && key < 256) specialKeys[key] = true;
+
+    if (state == MENU) {
+        if (key == GLUT_KEY_UP) {
+            moveMenuSelection(-1);
+        } else if (key == GLUT_KEY_DOWN) {
+            moveMenuSelection(1);
+        }
+    }
 }
 
 void specialUp(int key, int, int) {
