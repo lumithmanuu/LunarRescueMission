@@ -18,12 +18,14 @@
 #include <sstream>
 #include <algorithm>
 
+//macOS has its own OpenGL headers, other platforms use freeglut
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
 #include <GL/freeglut.h>
 #endif
 
+//hight and width of the window
 const int WIN_W = 800;
 const int WIN_H = 600;
 const float PI = 3.1415926535f;
@@ -825,6 +827,7 @@ void updateLander() {
     lander.x += lander.vx;
     lander.y += lander.vy;
 
+    // Boundary check - if you drift too far off the screen, it's game over
     if (lander.x < -20.0f || lander.x > WIN_W + 20.0f || lander.y > WIN_H + 80.0f) {
         finishGame(false, "You drifted away from the rescue zone.");
         return;
@@ -1070,6 +1073,7 @@ int main(int argc, char** argv) {
     state = MENU;
 
     glutDisplayFunc(drawScene);
+    //when user changes window size, call reshape function to adjust viewport and projection
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyDown);
     glutKeyboardUpFunc(keyUp);
